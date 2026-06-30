@@ -22,8 +22,11 @@ export default function McpAccessPanel() {
   const supabase = hasEnv ? createClientSupabase() : null;
   const [user, setUser] = useState<User | null>(null);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
+    setOrigin(window.location.origin);
+
     if (!supabase) {
       return;
     }
@@ -63,6 +66,7 @@ export default function McpAccessPanel() {
       ),
     [user?.id]
   );
+  const chatGptUrl = origin ? `${origin}/mcp?key=<MCP_API_KEY>` : "/mcp?key=<MCP_API_KEY>";
 
   async function copyRequestBody() {
     await navigator.clipboard.writeText(requestBody);
@@ -88,12 +92,16 @@ export default function McpAccessPanel() {
 
       <div className="mcp-grid">
         <div>
-          <h3>Endpoint</h3>
+          <h3>Manual endpoint</h3>
           <code className="code-block">POST /api/mcp</code>
         </div>
         <div>
           <h3>User ID</h3>
           <code className="code-block">{user.id}</code>
+        </div>
+        <div>
+          <h3>ChatGPT connector URL</h3>
+          <code className="code-block">{chatGptUrl}</code>
         </div>
       </div>
 

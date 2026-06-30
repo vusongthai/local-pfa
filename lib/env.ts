@@ -24,6 +24,10 @@ const mcpEnvSchema = z.object({
   MCP_API_KEY: z.string().min(1)
 });
 
+const hostedMcpEnvSchema = mcpEnvSchema.extend({
+  MCP_USER_ID: z.string().uuid()
+});
+
 export function getPlaidEnv() {
   return plaidEnvSchema.parse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -52,6 +56,13 @@ export function getEncryptionEnv() {
 export function getMcpEnv() {
   return mcpEnvSchema.parse({
     MCP_API_KEY: process.env.MCP_API_KEY
+  });
+}
+
+export function getHostedMcpEnv() {
+  return hostedMcpEnvSchema.parse({
+    MCP_API_KEY: process.env.MCP_API_KEY,
+    MCP_USER_ID: process.env.MCP_USER_ID
   });
 }
 
