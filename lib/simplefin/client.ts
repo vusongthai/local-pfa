@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 
-const DEFAULT_LOOKBACK_DAYS = 90;
+const DEFAULT_LOOKBACK_DAYS = 45;
 const SECONDS_PER_DAY = 24 * 60 * 60;
 const CLAIM_TIMEOUT_MS = 15_000;
 const ACCOUNTS_TIMEOUT_MS = 60_000;
@@ -34,6 +34,11 @@ export type SimpleFinAccount = {
 
 export type SimpleFinAccountsResponse = {
   accounts: SimpleFinAccount[];
+  errlist?: Array<{
+    code?: string;
+    msg?: string;
+  }>;
+  connections?: unknown[];
 };
 
 function normalizeBase64(value: string) {
@@ -138,7 +143,18 @@ export async function fetchSimpleFinAccounts(accessUrl: string, lookbackDays = D
     throw new Error(readableSimpleFinError(body, "Could not fetch SimpleFIN accounts"));
   }
 
-  return JSON.parse(body) as SimpleFinAccountsResponse;
+  const payload = JSON.parse(body) as SimpleFinAccountsResponse;
+  const fatalErrors = (payload.errlist ?? []).filter((entry) => entry.code !== "gen.api");
+
+  if (fatalErrors.length > 0) {
+    throw new Error(
+      fatalErrors
+        .map((entry) => [entry.code, entry.msg].filter(Boolean).join(": "))
+        .join("; ") || "SimpleFIN returned an authorization error"
+    );
+  }
+
+  return payload;
 }
 
 function readableSimpleFinError(body: string, fallback: string) {

@@ -113,29 +113,45 @@ async function persistSimpleFinAccountsAndTransactions(params: {
 
 async function syncSimpleFinItem(item: SimpleFinItemRow) {
   const supabase = createAdminSupabase();
-  const accessUrl = decryptSecret(item.encrypted_access_token);
-  const response = await fetchSimpleFinAccounts(accessUrl);
-  const persisted = await persistSimpleFinAccountsAndTransactions({
-    item,
-    accounts: response.accounts ?? []
-  });
+  try {
+    const accessUrl = decryptSecret(item.encrypted_access_token);
+    const response = await fetchSimpleFinAccounts(accessUrl);
+    const persisted = await persistSimpleFinAccountsAndTransactions({
+      item,
+      accounts: response.accounts ?? []
+    });
 
-  const { error } = await supabase
-    .from("plaid_items")
-    .update({
-      last_successful_sync_at: new Date().toISOString(),
-      last_failed_sync_at: null,
-      error_code: null,
-      error_message: null
-    })
-    .eq("id", item.id)
-    .eq("user_id", item.user_id);
+    const { error } = await supabase
+      .from("plaid_items")
+      .update({
+        last_successful_sync_at: new Date().toISOString(),
+        last_failed_sync_at: null,
+        error_code: null,
+        error_message: null
+      })
+      .eq("id", item.id)
+      .eq("user_id", item.user_id);
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+
+    return persisted;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown SimpleFIN sync error";
+
+    await supabase
+      .from("plaid_items")
+      .update({
+        last_failed_sync_at: new Date().toISOString(),
+        error_code: message.includes("gen.auth") ? "SIMPLEFIN_AUTH_FAILED" : "SIMPLEFIN_SYNC_FAILED",
+        error_message: message
+      })
+      .eq("id", item.id)
+      .eq("user_id", item.user_id);
+
+    throw err;
   }
-
-  return persisted;
 }
 
 export async function connectSimpleFinForUser(userId: string, setupToken: string) {
@@ -177,23 +193,7 @@ export async function syncSimpleFinForUser(userId: string) {
   const summaries = [];
 
   for (const item of (data ?? []) as SimpleFinItemRow[]) {
-    try {
-      summaries.push(await syncSimpleFinItem(item));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown SimpleFIN sync error";
-
-      await supabase
-        .from("plaid_items")
-        .update({
-          last_failed_sync_at: new Date().toISOString(),
-          error_code: "SIMPLEFIN_SYNC_FAILED",
-          error_message: message
-        })
-        .eq("id", item.id)
-        .eq("user_id", userId);
-
-      throw err;
-    }
+    summaries.push(await syncSimpleFinItem(item));
   }
 
   await logAuditEvent({
