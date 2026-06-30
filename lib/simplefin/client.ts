@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 
-const DEFAULT_LOOKBACK_DAYS = 180;
+const DEFAULT_LOOKBACK_DAYS = 90;
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
 export type SimpleFinTransaction = {
@@ -86,7 +86,7 @@ export async function claimSimpleFinSetupToken(setupToken: string) {
   const body = (await response.text()).trim();
 
   if (!response.ok) {
-    throw new Error(body || "Could not claim SimpleFIN setup token");
+    throw new Error(readableSimpleFinError(body, "Could not claim SimpleFIN setup token"));
   }
 
   if (!body.startsWith("http://") && !body.startsWith("https://")) {
@@ -107,18 +107,35 @@ export function simpleFinRange(lookbackDays = DEFAULT_LOOKBACK_DAYS) {
 }
 
 export async function fetchSimpleFinAccounts(accessUrl: string, lookbackDays = DEFAULT_LOOKBACK_DAYS) {
-  const url = new URL(accessUrl);
+  const url = new URL(accessUrl.replace(/\/$/, "") + "/accounts");
   const range = simpleFinRange(lookbackDays);
   url.searchParams.set("start-date", String(range.start));
   url.searchParams.set("end-date", String(range.end));
   url.searchParams.set("pending", "1");
+  url.searchParams.set("version", "2");
 
   const response = await requestFromCredentialUrl(url.toString());
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(body || "Could not fetch SimpleFIN accounts");
+    throw new Error(readableSimpleFinError(body, "Could not fetch SimpleFIN accounts"));
   }
 
   return JSON.parse(body) as SimpleFinAccountsResponse;
+}
+
+function readableSimpleFinError(body: string, fallback: string) {
+  if (!body) {
+    return fallback;
+  }
+
+  if (body.includes("<html") || body.includes("<!doctype html")) {
+    const title = body.match(/<title>(.*?)<\/title>/i)?.[1]?.trim();
+    const heading = body.match(/<h1>(.*?)<\/h1>/i)?.[1]?.trim();
+    const message = [title, heading].filter(Boolean).join(": ");
+
+    return message || fallback;
+  }
+
+  return body;
 }
