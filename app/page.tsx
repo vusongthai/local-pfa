@@ -3,6 +3,7 @@ import AuthPanel from "@/components/AuthPanel";
 import FinanceDashboard from "@/components/FinanceDashboard";
 import McpAccessPanel from "@/components/McpAccessPanel";
 import PlaidConnectButton from "@/components/PlaidConnectButton";
+import SimpleFinConnectPanel from "@/components/SimpleFinConnectPanel";
 import SyncTransactionsButton from "@/components/SyncTransactionsButton";
 
 export default function Home() {
@@ -13,7 +14,7 @@ export default function Home() {
           <div>
             <h1>Finance MCP</h1>
             <p>
-              Connect a Plaid sandbox bank account to begin syncing read-only balances and account metadata.
+              Connect read-only bank data with SimpleFIN or keep Plaid sandbox around for testing.
             </p>
           </div>
         </div>
@@ -22,8 +23,16 @@ export default function Home() {
 
         <section className="panel">
           <p>
-            This first build stores encrypted Plaid access tokens server-side, persists account balances in
-            Supabase, and keeps all sensitive credentials out of the browser.
+            This build stores encrypted connector tokens server-side, persists account balances and transactions in
+            Supabase, and keeps sensitive credentials out of the browser.
+          </p>
+        </section>
+
+        <SimpleFinConnectPanel />
+
+        <section className="panel">
+          <p>
+            Plaid sandbox remains available for test data and connector development.
           </p>
           <PlaidConnectButton />
           <SyncTransactionsButton />
