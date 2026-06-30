@@ -1,6 +1,7 @@
 import AlertsPanel from "@/components/AlertsPanel";
 import AuthPanel from "@/components/AuthPanel";
 import FinanceDashboard from "@/components/FinanceDashboard";
+import McpAccessPanel from "@/components/McpAccessPanel";
 import PlaidConnectButton from "@/components/PlaidConnectButton";
 import SyncTransactionsButton from "@/components/SyncTransactionsButton";
 
@@ -31,6 +32,8 @@ export default function Home() {
         <FinanceDashboard />
 
         <AlertsPanel />
+
+        <McpAccessPanel />
       </div>
     </main>
   );

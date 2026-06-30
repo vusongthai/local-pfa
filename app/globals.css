@@ -242,6 +242,55 @@ input {
   font-size: 13px;
 }
 
+.mcp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.code-block,
+.request-preview {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--text);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+}
+
+.code-block {
+  overflow-wrap: anywhere;
+  padding: 10px;
+}
+
+.request-preview {
+  overflow-x: auto;
+  padding: 14px;
+  line-height: 1.45;
+}
+
+.tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+
+.tool-list li {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--muted);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+}
+
 @media (max-width: 640px) {
   main {
     padding: 28px 16px;
@@ -268,7 +317,8 @@ input {
   }
 
   .metrics-grid,
-  .analysis-grid {
+  .analysis-grid,
+  .mcp-grid {
     grid-template-columns: 1fr;
   }
 
