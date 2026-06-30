@@ -1,13 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { getEncryptionEnv } from "./env";
 
 const VERSION = "v1";
 const ALGORITHM = "aes-256-gcm";
 
 function keyFromEnv() {
-  const value = process.env.ENCRYPTION_KEY;
-  if (!value) {
-    throw new Error("ENCRYPTION_KEY is required");
-  }
+  const { ENCRYPTION_KEY: value } = getEncryptionEnv();
 
   const decoded = Buffer.from(value, "base64");
   if (decoded.length === 32) {

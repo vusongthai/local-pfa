@@ -1,8 +1,8 @@
 import { Configuration, CountryCode, PlaidApi, PlaidEnvironments, Products } from "plaid";
-import { getServerEnv } from "@/lib/env";
+import { getPlaidEnv } from "@/lib/env";
 
 export function createPlaidClient() {
-  const env = getServerEnv();
+  const env = getPlaidEnv();
 
   return new PlaidApi(
     new Configuration({

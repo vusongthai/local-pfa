@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { getPublicEnv, getServerEnv } from "@/lib/env";
+import { getAdminEnv, getPublicEnv } from "../env";
 
 export function createRouteSupabase() {
   const env = getPublicEnv();
@@ -23,7 +23,7 @@ export function createRouteSupabase() {
 }
 
 export function createAdminSupabase() {
-  const env = getServerEnv();
+  const env = getAdminEnv();
 
   return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: {

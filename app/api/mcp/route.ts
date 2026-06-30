@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerEnv } from "@/lib/env";
+import { getMcpEnv } from "@/lib/env";
 import { jsonError, validationError } from "@/lib/http";
 import { callMcpTool } from "@/lib/mcp/tools";
 
@@ -19,7 +19,7 @@ function getBearerToken(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const env = getServerEnv();
+  const env = getMcpEnv();
   const token = getBearerToken(request);
 
   if (!token || token !== env.MCP_API_KEY) {
