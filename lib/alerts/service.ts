@@ -1,4 +1,4 @@
-import { createAdminSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "../supabase/server";
 import {
   alertStatusQuerySchema,
   createAlertRuleSchema,
