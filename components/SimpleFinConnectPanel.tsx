@@ -43,7 +43,7 @@ export default function SimpleFinConnectPanel() {
     }
 
     setSetupToken("");
-    setStatus(`Connected ${body.accounts} account${body.accounts === 1 ? "" : "s"} and synced ${body.transactions} transactions.`);
+    setStatus("SimpleFIN connected. Click Sync SimpleFIN to import accounts and transactions.");
     setBusy(false);
   }
 

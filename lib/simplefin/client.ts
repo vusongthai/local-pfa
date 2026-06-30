@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 
 const DEFAULT_LOOKBACK_DAYS = 90;
 const SECONDS_PER_DAY = 24 * 60 * 60;
+const CLAIM_TIMEOUT_MS = 15_000;
+const ACCOUNTS_TIMEOUT_MS = 60_000;
 
 export type SimpleFinTransaction = {
   id: string;
@@ -40,9 +42,13 @@ function normalizeBase64(value: string) {
   return normalized + padding;
 }
 
-function requestFromCredentialUrl(value: string, init?: RequestInit) {
+async function requestFromCredentialUrl(value: string, init?: RequestInit & { timeoutMs?: number }) {
   const url = new URL(value);
   const headers = new Headers(init?.headers);
+  const controller = new AbortController();
+  const timeoutMs = init?.timeoutMs ?? ACCOUNTS_TIMEOUT_MS;
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  const { timeoutMs: _timeoutMs, ...fetchInit } = init ?? {};
 
   if (url.username || url.password) {
     const username = decodeURIComponent(url.username);
@@ -52,10 +58,21 @@ function requestFromCredentialUrl(value: string, init?: RequestInit) {
     url.password = "";
   }
 
-  return fetch(url, {
-    ...init,
-    headers
-  });
+  try {
+    return await fetch(url, {
+      ...fetchInit,
+      headers,
+      signal: controller.signal
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("SimpleFIN took too long to respond. Try syncing again in a minute.");
+    }
+
+    throw err;
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
 }
 
 export function decodeSetupToken(setupToken: string) {
@@ -82,7 +99,7 @@ export function simpleFinConnectionId(accessUrl: string) {
 
 export async function claimSimpleFinSetupToken(setupToken: string) {
   const setupUrl = decodeSetupToken(setupToken);
-  const response = await requestFromCredentialUrl(setupUrl, { method: "POST" });
+  const response = await requestFromCredentialUrl(setupUrl, { method: "POST", timeoutMs: CLAIM_TIMEOUT_MS });
   const body = (await response.text()).trim();
 
   if (!response.ok) {
@@ -114,7 +131,7 @@ export async function fetchSimpleFinAccounts(accessUrl: string, lookbackDays = D
   url.searchParams.set("pending", "1");
   url.searchParams.set("version", "2");
 
-  const response = await requestFromCredentialUrl(url.toString());
+  const response = await requestFromCredentialUrl(url.toString(), { timeoutMs: ACCOUNTS_TIMEOUT_MS });
   const body = await response.text();
 
   if (!response.ok) {

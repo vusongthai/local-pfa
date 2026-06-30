@@ -20,12 +20,12 @@ type SimpleFinItemRow = {
 async function saveSimpleFinConnection(params: {
   userId: string;
   accessUrl: string;
-  accounts: SimpleFinAccount[];
+  accounts?: SimpleFinAccount[];
 }) {
   const supabase = createAdminSupabase();
   const connectionId = simpleFinConnectionId(params.accessUrl);
   const institutionNames = Array.from(
-    new Set(params.accounts.map((account) => account.org?.name).filter(Boolean))
+    new Set((params.accounts ?? []).map((account) => account.org?.name).filter(Boolean))
   );
 
   const { data, error } = await supabase
@@ -140,15 +140,9 @@ async function syncSimpleFinItem(item: SimpleFinItemRow) {
 
 export async function connectSimpleFinForUser(userId: string, setupToken: string) {
   const accessUrl = await claimSimpleFinSetupToken(setupToken);
-  const response = await fetchSimpleFinAccounts(accessUrl);
   const item = await saveSimpleFinConnection({
     userId,
-    accessUrl,
-    accounts: response.accounts ?? []
-  });
-  const persisted = await persistSimpleFinAccountsAndTransactions({
-    item,
-    accounts: response.accounts ?? []
+    accessUrl
   });
 
   await logAuditEvent({
@@ -156,12 +150,15 @@ export async function connectSimpleFinForUser(userId: string, setupToken: string
     action: "simplefin.connect",
     source: "api",
     metadata: {
-      accounts: persisted.accounts,
-      transactions: persisted.transactions
+      simplefin_item_id: item.id
     }
   });
 
-  return persisted;
+  return {
+    connected: true,
+    accounts: 0,
+    transactions: 0
+  };
 }
 
 export async function syncSimpleFinForUser(userId: string) {
