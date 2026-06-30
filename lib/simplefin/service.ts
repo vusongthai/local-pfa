@@ -17,6 +17,13 @@ type SimpleFinItemRow = {
   encrypted_access_token: string;
 };
 
+type SimpleFinSyncSummary = {
+  item_id: string;
+  accounts: number;
+  transactions: number;
+  error?: string;
+};
+
 async function saveSimpleFinConnection(params: {
   userId: string;
   accessUrl: string;
@@ -111,7 +118,7 @@ async function persistSimpleFinAccountsAndTransactions(params: {
   };
 }
 
-async function syncSimpleFinItem(item: SimpleFinItemRow) {
+async function syncSimpleFinItem(item: SimpleFinItemRow): Promise<SimpleFinSyncSummary> {
   const supabase = createAdminSupabase();
   try {
     const accessUrl = decryptSecret(item.encrypted_access_token);
@@ -136,21 +143,31 @@ async function syncSimpleFinItem(item: SimpleFinItemRow) {
       throw error;
     }
 
-    return persisted;
+    return {
+      item_id: item.id,
+      ...persisted
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown SimpleFIN sync error";
+    const authFailed = message.includes("gen.auth");
 
     await supabase
       .from("plaid_items")
       .update({
+        status: authFailed ? "error" : "active",
         last_failed_sync_at: new Date().toISOString(),
-        error_code: message.includes("gen.auth") ? "SIMPLEFIN_AUTH_FAILED" : "SIMPLEFIN_SYNC_FAILED",
+        error_code: authFailed ? "SIMPLEFIN_AUTH_FAILED" : "SIMPLEFIN_SYNC_FAILED",
         error_message: message
       })
       .eq("id", item.id)
       .eq("user_id", item.user_id);
 
-    throw err;
+    return {
+      item_id: item.id,
+      accounts: 0,
+      transactions: 0,
+      error: message
+    };
   }
 }
 
@@ -190,11 +207,13 @@ export async function syncSimpleFinForUser(userId: string) {
     throw error;
   }
 
-  const summaries = [];
+  const summaries: SimpleFinSyncSummary[] = [];
 
   for (const item of (data ?? []) as SimpleFinItemRow[]) {
     summaries.push(await syncSimpleFinItem(item));
   }
+
+  const failures = summaries.filter((summary) => summary.error);
 
   await logAuditEvent({
     userId,
@@ -203,7 +222,8 @@ export async function syncSimpleFinForUser(userId: string) {
     metadata: {
       items: summaries.length,
       accounts: summaries.reduce((total, item) => total + item.accounts, 0),
-      transactions: summaries.reduce((total, item) => total + item.transactions, 0)
+      transactions: summaries.reduce((total, item) => total + item.transactions, 0),
+      failures: failures.length
     }
   });
 
@@ -211,6 +231,10 @@ export async function syncSimpleFinForUser(userId: string) {
     items: summaries.length,
     accounts: summaries.reduce((total, item) => total + item.accounts, 0),
     transactions: summaries.reduce((total, item) => total + item.transactions, 0),
+    failures: failures.map((failure) => ({
+      item_id: failure.item_id,
+      error: failure.error
+    })),
     summaries
   };
 }

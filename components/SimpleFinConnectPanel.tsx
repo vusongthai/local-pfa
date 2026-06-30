@@ -65,7 +65,13 @@ export default function SimpleFinConnectPanel() {
       return;
     }
 
-    setStatus(`Synced ${body.items} connection${body.items === 1 ? "" : "s"} with ${body.transactions} transactions.`);
+    if (body.failures?.length) {
+      setStatus(
+        `Synced ${body.transactions} transactions. ${body.failures.length} old connection${body.failures.length === 1 ? "" : "s"} failed and will be skipped next time.`
+      );
+    } else {
+      setStatus(`Synced ${body.items} connection${body.items === 1 ? "" : "s"} with ${body.transactions} transactions.`);
+    }
     setBusy(false);
   }
 
